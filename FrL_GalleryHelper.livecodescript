@@ -5,7 +5,10 @@
 -- This function is to facilitate obtaining the route to the image files and their corresponding miniatures.
 -- Parameters
 -- pFolderIn: Path to the folder where the images are.
--- pSizeThumbnails: Thumbnail size. For now they are only square.
+-- pSizeThumbnails: Thumbnail size. For now they are only square. 
+
+--------------------------------* OR pSizeThumbnails is false is not create Thumbnails. --> T
+
 function pathFromGalleryFiles pFolderIn, pSizeThumbnails
    lock screen
    lock messages
@@ -21,7 +24,7 @@ function pathFromGalleryFiles pFolderIn, pSizeThumbnails
    put _imagesFiles(pFolderIn) into tListImages
    
    if the number of lines of tListImages is 0 or there is not a Folder pFolderIn then return empty
-   if pSizeThumbnails is not a number then put 300 into pSizeThumbnails
+   if pSizeThumbnails is not a number and pSizeThumbnails is not a boolean then put 300 into pSizeThumbnails
    
    if there is not a Folder tFolderOut then create folder tFolderOut
    
@@ -30,56 +33,70 @@ function pathFromGalleryFiles pFolderIn, pSizeThumbnails
       create folder tFolderOut
    end if
    
-   // Work to thumbnails
-   put  the bufferHiddenImages into tBufferHiddenImages
-   put the JPEGQuality into tJPEGQuality
-   set the bufferHiddenImages to false
-   set the locklocation of templateGroup to true
-   set the vscrollbar of templateGroup to true
-   set the hscrollbar of templateGroup to true
-   set the margins of templateGroup to 0
-   set the scrollbarwidth of templateGroup to 0
-   
-   if the environment is "mobile" then
-      set the resizequality of templateImage to "normal"
-   else
-      set the resizequality of templateImage to "best"
-   end if
-   
-   set the locklocation of templateImage to true
-   set the alwaysBuffer of templateImage to false
-   set the threeD of templateImage to true
-   set the JPEGQuality to 85
-   
-   create grp "WorkThumbnails"
-   put it into tLongIdGrp
-   create image"Thumbnails" in tLongIdGrp
-   put it into tLongIdImg
-   
-   set the rect of tLongIdGrp to 0, 0, pSizeThumbnails, pSizeThumbnails
-   set the loc of tLongIdGrp to - 1000, - 500  --> Took the group off the screen
    
    local tFileOut, tCounter = 0
    
-   repeat for each line tFilename in tListImages
-      add 1 to tCounter
-      set the filename of tLongIdImg to tFilename
-      put tFolderOut & item - 1 of tFilename into tFileOut
+   if pSizeThumbnails is not false then
+      // Work to thumbnails
+      put  the bufferHiddenImages into tBufferHiddenImages
+      put the JPEGQuality into tJPEGQuality
+      set the bufferHiddenImages to false
+      set the locklocation of templateGroup to true
+      set the vscrollbar of templateGroup to true
+      set the hscrollbar of templateGroup to true
+      set the margins of templateGroup to 0
+      set the scrollbarwidth of templateGroup to 0
       
-      _thumbnailsSize tLongIdImg, tLongIdGrp,pSizeThumbnails
-      _exportImage tLongIdGrp, tFileOut
+      if the environment is "mobile" then
+         set the resizequality of templateImage to "normal"
+      else
+         set the resizequality of templateImage to "best"
+      end if
       
-      put tFileOut into tListThumbnailsArray[tCounter]["Thumbnail"]
-      put tFilename into tListThumbnailsArray[tCounter]["Normal"]
+      set the locklocation of templateImage to true
+      set the alwaysBuffer of templateImage to false
+      set the threeD of templateImage to true
+      set the JPEGQuality to 85
       
-   end repeat
-   
-   delete tLongIdGrp
-   set  the bufferHiddenImages to tBufferHiddenImages
-   set the JPEGQuality to tJPEGQuality
-   
-   reset the templateGroup
-   reset the templateImage
+      create grp "WorkThumbnails"
+      put it into tLongIdGrp
+      create image"Thumbnails" in tLongIdGrp
+      put it into tLongIdImg
+      
+      set the rect of tLongIdGrp to 0, 0, pSizeThumbnails, pSizeThumbnails
+      set the loc of tLongIdGrp to - 1000, - 500  --> Took the group off the screen
+      
+      repeat for each line tFilename in tListImages
+         add 1 to tCounter
+         set the filename of tLongIdImg to tFilename
+         put tFolderOut & item - 1 of tFilename into tFileOut
+         
+         _thumbnailsSize tLongIdImg, tLongIdGrp,pSizeThumbnails
+         _exportImage tLongIdGrp, tFileOut
+         
+         put tFileOut into tListThumbnailsArray[tCounter]["thumbnail"]
+         put tFilename into tListThumbnailsArray[tCounter]["image"]
+         
+      end repeat
+      
+      delete tLongIdGrp
+      set  the bufferHiddenImages to tBufferHiddenImages
+      set the JPEGQuality to tJPEGQuality
+      
+      reset the templateGroup
+      reset the templateImage
+   else
+      
+      repeat for each line tFilename in tListImages
+         add 1 to tCounter
+         
+         put tFolderOut & item - 1 of tFilename into tFileOut
+         
+         put tFileOut into tListThumbnailsArray[tCounter]["thumbnail"]
+         put tFilename into tListThumbnailsArray[tCounter]["image"]
+         
+      end repeat
+   end if
    
    unlock messages
    unlock screen
@@ -142,9 +159,13 @@ command optimizeImage pFolderIn, pFolderOut,  pMaxSize, pJPGQuality
    repeat for each line tFilename in tListImages
       set the filename of tLongIdImg to tFilename
       put pFolderOut &"/"& item - 1 of tFilename into tFileOut
-      _scaleImage tLongIdImg, pMaxSize, pMaxSize
-      set the imageData of tLongIdImg to the imageData of tLongIdImg
-      _exportImage tLongIdImg, tFileOut, false
+      
+      if the formattedWidth of tLongIdImg > pMaxSize or  the formattedheight of tLongIdImg > pMaxSize then
+         _scaleImage tLongIdImg, pMaxSize, pMaxSize
+         set the imageData of tLongIdImg to the imageData of tLongIdImg
+         _exportImage tLongIdImg, tFileOut, false
+      end if
+      
    end repeat
    
    delete tLongIdImg
