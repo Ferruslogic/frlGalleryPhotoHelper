@@ -34,6 +34,11 @@ function pathFromGalleryFiles pFolderIn, pSizeThumbnails
    local tFileOut, tCounter = 0
    
    if pSizeThumbnails is not false then
+
+   	    if pSizeThumbnails is true or pSizeThumbnails is not a number then 
+         put 300 into pSizeThumbnails
+      end if
+
       // Work to thumbnails
       put the bufferHiddenImages into tBufferHiddenImages
       put the JPEGQuality into tJPEGQuality
